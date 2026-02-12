@@ -1,0 +1,89 @@
+coop-puzzle-room/
+  README.md
+  .gitignore
+
+  backend/
+    mvnw
+    mvnw.cmd
+    pom.xml
+    src/
+      main/
+        java/
+          com/
+            coop/
+              puzzleroom/
+                CoopPuzzleRoomApplication.java
+
+                config/
+                  CorsConfig.java
+                  SecurityConfig.java
+                  JwtConfig.java
+
+                auth/
+                  AuthController.java
+                  AuthService.java
+                  dto/
+                    LoginRequest.java
+                    RegisterRequest.java
+                    AuthResponse.java
+
+                user/
+                  User.java
+                  UserRepository.java
+                  UserService.java
+                  dto/
+                    UserResponse.java
+
+                common/
+                  exception/
+                    ApiExceptionHandler.java
+                    ErrorResponse.java
+                  util/
+                    TimeUtil.java
+
+                health/
+                  HealthController.java
+      main/
+        resources/
+          application.yml
+          application-local.yml
+      test/
+        java/
+          com/
+            coop/
+              puzzleroom/
+                CoopPuzzleRoomApplicationTests.java
+
+  frontend/
+    package.json
+    tsconfig.json
+    vite.config.ts (or next.config.js if Next)
+    index.html
+    src/
+      main.tsx
+      App.tsx
+
+      api/
+        client.ts
+        endpoints.ts
+
+      auth/
+        AuthContext.tsx
+        authStorage.ts
+        authApi.ts
+        ProtectedRoute.tsx
+
+      pages/
+        LoginPage.tsx
+        RegisterPage.tsx
+        HomePage.tsx
+
+      components/
+        Navbar.tsx
+
+  docs/
+    phase1-api.md
+    decisions.md
+
+  scripts/
+    dev-notes.md

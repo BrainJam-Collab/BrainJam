@@ -1,0 +1,21 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/puzzleroom
+    username: puzzleroom
+    password: puzzleroom
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+app:
+  jwt:
+    secret: "preyashdisha2901$$preyashdisha2901$$"
+    expiresSeconds: 86400
+
+cors:
+  allowedOrigins:
+    - "http://localhost:5173"

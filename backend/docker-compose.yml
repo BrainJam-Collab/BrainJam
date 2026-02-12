@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    container_name: puzzleroom-db
+    environment:
+      POSTGRES_DB: puzzleroom
+      POSTGRES_USER: puzzleroom
+      POSTGRES_PASSWORD: puzzleroom
+    ports:
+      - "5432:5432"
+    volumes:
+      - puzzleroom_pgdata:/var/lib/postgresql/data
+
+volumes:
+  puzzleroom_pgdata:
