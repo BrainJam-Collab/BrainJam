@@ -2,6 +2,9 @@
 
 Collaborative puzzle rooms where up to 4 players split a puzzle into parallel tasks and race the clock together.
 
+<img width="3024" height="1964" alt="image" src="https://github.com/user-attachments/assets/585eb9bd-a740-454f-af1f-a76d6f71dfd6" />
+
+
 ## Stack
 - Backend: Spring Boot 3, JWT auth, JPA, PostgreSQL
 - Frontend: React + Vite
@@ -13,6 +16,13 @@ Collaborative puzzle rooms where up to 4 players split a puzzle into parallel ta
 - Assign 1 task per participant on room start
 - Task completion + team time (max completion time)
 - Realtime updates on joins/starts/completions
+
+<img width="3024" height="1964" alt="image" src="https://github.com/user-attachments/assets/81ca0038-5076-4a46-a1cc-ca694d69be03" />
+
+<img width="3024" height="1964" alt="image" src="https://github.com/user-attachments/assets/aca039ff-2d45-4744-b96b-ba24e3491b66" />
+
+<img width="3024" height="1964" alt="image" src="https://github.com/user-attachments/assets/da5a2dab-fa56-488d-a651-48519bb31c3c" />
+
 
 ## Local setup
 
