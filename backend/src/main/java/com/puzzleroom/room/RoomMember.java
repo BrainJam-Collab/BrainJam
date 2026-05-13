@@ -28,6 +28,9 @@ public class RoomMember {
     @Column(nullable = false, length = 20)
     private RoomRole role;
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean ready = false;
+
     @Column(nullable = false, updatable = false)
     private Instant joinedAt = Instant.now();
 
@@ -43,5 +46,8 @@ public class RoomMember {
     public Room getRoom() { return room; }
     public User getUser() { return user; }
     public RoomRole getRole() { return role; }
+    public boolean isReady() { return ready; }
     public Instant getJoinedAt() { return joinedAt; }
+
+    public void setReady(boolean ready) { this.ready = ready; }
 }

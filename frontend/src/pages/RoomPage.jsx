@@ -4,7 +4,7 @@ import { apiFetch } from "../api/client";
 import { useAuth } from "../auth/useAuth";
 
 function formatDuration(seconds) {
-  if (seconds == null) return "—";
+  if (seconds == null) return "-";
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${mins}m ${secs}s`;
@@ -19,6 +19,7 @@ export default function RoomPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [settings, setSettings] = useState({ locked: false, maxMembers: 4 });
   const refreshInFlight = useRef(false);
 
   async function refresh({ silent = false } = {}) {
@@ -46,6 +47,14 @@ export default function RoomPage() {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, token]);
+
+  useEffect(() => {
+    if (!room) return;
+    setSettings({
+      locked: Boolean(room.locked),
+      maxMembers: room.maxMembers || 4,
+    });
+  }, [room]);
 
   useEffect(() => {
     if (!token) return;
@@ -82,6 +91,77 @@ export default function RoomPage() {
       await refresh();
     } catch (err) {
       setError(err.message || "Failed to start room");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleSaveSettings(e) {
+    e.preventDefault();
+    if (!token) return;
+    setBusy(true);
+    setError("");
+    try {
+      const nextRoom = await apiFetch(`/rooms/${roomId}/settings`, {
+        method: "PATCH",
+        token,
+        body: JSON.stringify(settings),
+      });
+      setRoom(nextRoom);
+    } catch (err) {
+      setError(err.message || "Failed to update room settings");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleRegenerateInvite() {
+    if (!token) return;
+    setBusy(true);
+    setError("");
+    try {
+      const nextRoom = await apiFetch(`/rooms/${roomId}/invite-code/regenerate`, {
+        method: "POST",
+        token,
+      });
+      setRoom(nextRoom);
+    } catch (err) {
+      setError(err.message || "Failed to regenerate invite code");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleRemoveMember(memberId) {
+    if (!token) return;
+    setBusy(true);
+    setError("");
+    try {
+      const nextRoom = await apiFetch(`/rooms/${roomId}/members/${memberId}`, {
+        method: "DELETE",
+        token,
+      });
+      setRoom(nextRoom);
+    } catch (err) {
+      setError(err.message || "Failed to remove participant");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleReady(ready) {
+    if (!token) return;
+    setBusy(true);
+    setError("");
+    try {
+      const nextRoom = await apiFetch(`/rooms/${roomId}/ready`, {
+        method: "PATCH",
+        token,
+        body: JSON.stringify({ ready }),
+      });
+      setRoom(nextRoom);
+    } catch (err) {
+      setError(err.message || "Failed to update ready status");
     } finally {
       setBusy(false);
     }
@@ -143,10 +223,17 @@ export default function RoomPage() {
     return { total, done, percent };
   }, [room?.members, memberStatus]);
 
+  const myMember = useMemo(() => {
+    if (!room || !me) return null;
+    return room.members?.find((member) => member.id === me.id) || null;
+  }, [room, me]);
+
+  const canStart = room?.status === "OPEN" && room?.allMembersReady;
+
   if (loading) {
     return (
       <div className="page">
-        <div className="card">Loading room…</div>
+        <div className="card">Loading room...</div>
       </div>
     );
   }
@@ -165,7 +252,7 @@ export default function RoomPage() {
         <div>
           <p className="eyebrow">Room {room.id}</p>
           <h1>{room.puzzle?.title}</h1>
-          <p className="muted">{room.puzzle?.genre} · Status: {room.status}</p>
+          <p className="muted">{room.puzzle?.genre} | Status: {room.status}</p>
         </div>
         <div className="room-meta">
           <div className="stat">
@@ -175,6 +262,10 @@ export default function RoomPage() {
           <div className="stat">
             <span className="label">Team time</span>
             <span className="value">{formatDuration(room.teamTimeSeconds)}</span>
+          </div>
+          <div className="stat">
+            <span className="label">Room</span>
+            <span className="value">{room.locked ? "Locked" : `${room.members?.length || 0}/${room.maxMembers}`}</span>
           </div>
         </div>
       </section>
@@ -234,8 +325,13 @@ export default function RoomPage() {
               >
                 <div>
                   <div className="strong">@{m.username}</div>
-                  <div className="muted small">{m.role}</div>
+                  <div className="muted small">{m.role} | {m.ready ? "Ready" : "Not ready"}</div>
                 </div>
+                {isOwner && room.status === "OPEN" && m.role !== "OWNER" && (
+                  <button className="ghost danger" onClick={() => handleRemoveMember(m.id)} disabled={busy}>
+                    Remove
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -248,12 +344,55 @@ export default function RoomPage() {
               </div>
             </div>
           )}
-          {isOwner && room.status === "OPEN" && (
-            <button className="primary" onClick={handleStart} disabled={busy}>
-              {busy ? "Starting..." : "Start room"}
+          {myMember && room.status === "OPEN" && (
+            <button className={myMember.ready ? "ghost" : "primary"} onClick={() => handleReady(!myMember.ready)} disabled={busy}>
+              {myMember.ready ? "Mark not ready" : "I'm ready"}
             </button>
           )}
+          {isOwner && room.status === "OPEN" && (
+            <>
+              {!canStart && (
+                <p className="muted small">All participants must be ready before the room can start.</p>
+              )}
+              <button className="primary" onClick={handleStart} disabled={busy || !canStart}>
+                {busy ? "Starting..." : "Start room"}
+              </button>
+            </>
+          )}
         </div>
+
+        {isOwner && room.status === "OPEN" && (
+          <div className="card sticker tilt-right">
+            <h2>Owner controls</h2>
+            <form className="form" onSubmit={handleSaveSettings}>
+              <label className="toggle">
+                <input
+                  type="checkbox"
+                  checked={settings.locked}
+                  onChange={(e) => setSettings((current) => ({ ...current, locked: e.target.checked }))}
+                />
+                <span>Lock room to prevent new joins</span>
+              </label>
+              <label>
+                Max players
+                <select
+                  value={settings.maxMembers}
+                  onChange={(e) => setSettings((current) => ({ ...current, maxMembers: Number(e.target.value) }))}
+                >
+                  {[2, 3, 4].map((count) => (
+                    <option key={count} value={count}>{count}</option>
+                  ))}
+                </select>
+              </label>
+              <button className="primary" type="submit" disabled={busy}>
+                Save controls
+              </button>
+            </form>
+            <button className="ghost" onClick={handleRegenerateInvite} disabled={busy}>
+              Regenerate invite code
+            </button>
+          </div>
+        )}
 
         <div className="card sticker tilt-right">
           <h2>Your tasks</h2>

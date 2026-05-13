@@ -85,6 +85,9 @@ public class RoomService {
         if (members.findByRoomIdAndUserId(room.getId(), userId).isPresent()) {
             return buildRoomResponse(room);
         }
+        if (room.isLocked()) {
+            throw new IllegalArgumentException("room is locked");
+        }
 
         long count = members.countByRoomId(room.getId());
         if (count >= room.getMaxMembers()) {
@@ -117,6 +120,9 @@ public class RoomService {
         if (roomMembers.isEmpty()) {
             throw new IllegalArgumentException("at least one participant required");
         }
+        if (!allMembersReady(roomMembers)) {
+            throw new IllegalArgumentException("all participants must be ready before starting");
+        }
 
         List<PuzzleTask> tasks = puzzleTasks.findByPuzzleIdOrderByOrderIndexAsc(room.getPuzzle().getId());
         if (tasks.size() < roomMembers.size()) {
@@ -143,6 +149,62 @@ public class RoomService {
         return created.stream()
                 .map(rt -> RoomTaskResponse.from(rt, durationSeconds(room, rt)))
                 .collect(Collectors.toList());
+    }
+
+    public RoomResponse updateSettings(UUID roomId, UUID userId, boolean locked, int maxMembers) {
+        Room room = requireOpenOwnedRoom(roomId, userId);
+        long currentMembers = members.countByRoomId(roomId);
+        if (maxMembers < currentMembers) {
+            throw new IllegalArgumentException("max members cannot be lower than current participants");
+        }
+        if (maxMembers < 2 || maxMembers > Room.MAX_MEMBERS) {
+            throw new IllegalArgumentException("max members must be between 2 and 4");
+        }
+
+        room.setLocked(locked);
+        room.setMaxMembers(maxMembers);
+        rooms.save(room);
+
+        events.roomUpdated(room.getId());
+        return buildRoomResponse(room);
+    }
+
+    public RoomResponse regenerateInviteCode(UUID roomId, UUID userId) {
+        Room room = requireOpenOwnedRoom(roomId, userId);
+        room.setInviteCode(generateInviteCode());
+        rooms.save(room);
+
+        events.roomUpdated(room.getId());
+        return buildRoomResponse(room);
+    }
+
+    public RoomResponse removeMember(UUID roomId, UUID memberUserId, UUID ownerId) {
+        Room room = requireOpenOwnedRoom(roomId, ownerId);
+        if (room.getOwnerId().equals(memberUserId)) {
+            throw new IllegalArgumentException("owner cannot be removed");
+        }
+
+        RoomMember member = members.findByRoomIdAndUserId(roomId, memberUserId)
+                .orElseThrow(() -> new IllegalArgumentException("member not found"));
+        members.delete(member);
+
+        events.roomUpdated(room.getId());
+        return buildRoomResponse(room);
+    }
+
+    public RoomResponse updateReady(UUID roomId, UUID userId, boolean ready) {
+        Room room = requireRoom(roomId);
+        if (room.getStatus() != RoomStatus.OPEN) {
+            throw new IllegalArgumentException("room already started");
+        }
+
+        RoomMember member = members.findByRoomIdAndUserId(roomId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("not a room member"));
+        member.setReady(ready);
+        members.save(member);
+
+        events.roomUpdated(room.getId());
+        return buildRoomResponse(room);
     }
 
     public List<RoomTaskResponse> listTasks(UUID roomId, UUID userId) {
@@ -185,6 +247,17 @@ public class RoomService {
                 .orElseThrow(() -> new IllegalArgumentException("room not found"));
     }
 
+    private Room requireOpenOwnedRoom(UUID roomId, UUID ownerId) {
+        Room room = requireRoom(roomId);
+        if (!room.getOwnerId().equals(ownerId)) {
+            throw new IllegalArgumentException("only the owner can manage the room");
+        }
+        if (room.getStatus() != RoomStatus.OPEN) {
+            throw new IllegalArgumentException("room already started");
+        }
+        return room;
+    }
+
     private User requireUser(UUID userId) {
         return users.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("user not found"));
@@ -215,7 +288,16 @@ public class RoomService {
                 .collect(Collectors.toList());
 
         Long teamTime = computeTeamTimeSeconds(room);
-        return RoomResponse.from(room, memberResponses, teamTime);
+        return RoomResponse.from(room, memberResponses, teamTime, allMembersReady(memberResponses));
+    }
+
+    private boolean allMembersReady(List<?> roomMembers) {
+        if (roomMembers.isEmpty()) return false;
+        for (Object item : roomMembers) {
+            if (item instanceof RoomMember member && !member.isReady()) return false;
+            if (item instanceof MemberResponse member && !member.ready) return false;
+        }
+        return true;
     }
 
     private Long computeTeamTimeSeconds(Room room) {

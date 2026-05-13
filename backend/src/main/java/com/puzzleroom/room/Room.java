@@ -33,6 +33,9 @@ public class Room {
     @Column(nullable = false, unique = true, length = 20)
     private String inviteCode;
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean locked = false;
+
     @Column(nullable = false)
     private int maxMembers = MAX_MEMBERS;
 
@@ -59,12 +62,16 @@ public class Room {
     public RoomStatus getStatus() { return status; }
     public Puzzle getPuzzle() { return puzzle; }
     public String getInviteCode() { return inviteCode; }
+    public boolean isLocked() { return locked; }
     public int getMaxMembers() { return maxMembers; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getStartedAt() { return startedAt; }
     public Instant getCompletedAt() { return completedAt; }
 
     public void setStatus(RoomStatus status) { this.status = status; }
+    public void setInviteCode(String inviteCode) { this.inviteCode = inviteCode; }
+    public void setLocked(boolean locked) { this.locked = locked; }
+    public void setMaxMembers(int maxMembers) { this.maxMembers = maxMembers; }
     public void setStartedAt(Instant startedAt) { this.startedAt = startedAt; }
     public void setCompletedAt(Instant completedAt) { this.completedAt = completedAt; }
 }

@@ -104,7 +104,7 @@ export default function HomePage() {
           <div className="pill-grid">
             {genres.length === 0 && <span className="pill">Loading...</span>}
             {genres.map(([genre, count]) => (
-              <span key={genre} className="pill">{genre} · {count}</span>
+              <span key={genre} className="pill">{genre} | {count}</span>
             ))}
           </div>
           <div className="divider" />
@@ -116,18 +116,18 @@ export default function HomePage() {
       </section>
 
       {loading ? (
-        <div className="card">Loading your account…</div>
+        <div className="card">Loading your account...</div>
       ) : token ? (
         <section className="grid">
           <div className="card sticker tilt-left">
             <h2>Create a room</h2>
-            <p className="muted">Pick a puzzle. Decide if you’re playing.</p>
+            <p className="muted">Pick a puzzle. Decide if you're playing.</p>
             <form className="form" onSubmit={handleCreate}>
               <label>
                 Puzzle
                 <select value={puzzleId} onChange={(e) => setPuzzleId(e.target.value)} required>
                   {puzzles.map((p) => (
-                    <option key={p.id} value={p.id}>{p.title} · {p.genre}</option>
+                    <option key={p.id} value={p.id}>{p.title} | {p.genre}</option>
                   ))}
                 </select>
               </label>

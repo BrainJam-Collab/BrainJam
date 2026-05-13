@@ -4,6 +4,8 @@ import com.puzzleroom.room.dto.CreateRoomRequest;
 import com.puzzleroom.room.dto.JoinRoomRequest;
 import com.puzzleroom.room.dto.RoomResponse;
 import com.puzzleroom.room.dto.RoomTaskResponse;
+import com.puzzleroom.room.dto.UpdateReadyRequest;
+import com.puzzleroom.room.dto.UpdateRoomSettingsRequest;
 import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -43,6 +45,42 @@ public class RoomController {
     public List<RoomTaskResponse> start(@PathVariable UUID roomId, Authentication auth) {
         UUID userId = UUID.fromString(auth.getName());
         return rooms.startRoom(roomId, userId);
+    }
+
+    @PatchMapping("/{roomId}/settings")
+    public RoomResponse settings(
+            @PathVariable UUID roomId,
+            @Valid @RequestBody UpdateRoomSettingsRequest req,
+            Authentication auth
+    ) {
+        UUID userId = UUID.fromString(auth.getName());
+        return rooms.updateSettings(roomId, userId, req.locked, req.maxMembers);
+    }
+
+    @PostMapping("/{roomId}/invite-code/regenerate")
+    public RoomResponse regenerateInviteCode(@PathVariable UUID roomId, Authentication auth) {
+        UUID userId = UUID.fromString(auth.getName());
+        return rooms.regenerateInviteCode(roomId, userId);
+    }
+
+    @DeleteMapping("/{roomId}/members/{memberUserId}")
+    public RoomResponse removeMember(
+            @PathVariable UUID roomId,
+            @PathVariable UUID memberUserId,
+            Authentication auth
+    ) {
+        UUID userId = UUID.fromString(auth.getName());
+        return rooms.removeMember(roomId, memberUserId, userId);
+    }
+
+    @PatchMapping("/{roomId}/ready")
+    public RoomResponse ready(
+            @PathVariable UUID roomId,
+            @Valid @RequestBody UpdateReadyRequest req,
+            Authentication auth
+    ) {
+        UUID userId = UUID.fromString(auth.getName());
+        return rooms.updateReady(roomId, userId, req.ready);
     }
 
     @GetMapping("/{roomId}/tasks")
